@@ -1,0 +1,6 @@
+Host bdmaster
+HostName bd-master.newprolab.com
+User valeria.lupanova
+Port 22
+IdentityFile ~/.ssh/newprolab.pem
+ServerAliveInterval 60
