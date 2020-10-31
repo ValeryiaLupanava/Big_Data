@@ -166,7 +166,7 @@ Traceback (most recent call last):
 ImportError: No module named happybase
 ```
 
-⚠️ Важно! Доступ к логам возможен только через [прокси](../common/proxy.md)!
+⚠️ Важно! Доступ к логам возможен только через [прокси](../../common/proxy.md)!
 
 **[6]** У HBase есть веб-интерфейс: http://bd-node2.newprolab.com:16010/master-status. Здесь вы, например, можете посмотреть, какие таблицы созданы и есть ли среди них ваша.
 

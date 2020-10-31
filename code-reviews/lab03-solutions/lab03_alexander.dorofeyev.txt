@@ -1,0 +1,142 @@
+--- LAB03
+--1. Коннектимся к bd-master
+ssh -i C:\Users\RU20012238\Keys\newprolab.pem alexander.dorofeyev@bd-master.newprolab.com
+
+--2. подключаемся под alexander.dorofeyev, пароль как в ЛК
+beeline
+
+--3. Создаем свою базу
+create database adorofeyev;
+
+--4. Проверяем, что база создалась
+show databases;
+
+--5. Переключаемся на нее
+use adorofeyev;
+
+--6.Создание таблицы в HIVE
+create external table alexander_dorofeyev (uid BIGINT, ts FLOAT, url STRING) ROW FORMAT DELIMITED FIELDS TERMINATED BY ',';
+
+--7. Проверяем, что таблица создалась
+show tables;
+
+--8. Загружаем данные в таблицу 
+LOAD DATA INPATH '/labs/lab03data' OVERWRITE INTO TABLE alexander_dorofeyev;
+-- хрен! доступ к original data только на чтение, а Hive пытается переписать файл. Тогда идем другим путем:
+
+-----8.1 Копирование original data в свою папку на hdfs, заодно сразу выделяем из url домены
+
+--------8.1.1 Пишем copy_origin_data_and_filtering.py
+#!/opt/anaconda/envs/bd9/bin/python
+from urllib.parse import urlparse, unquote
+import re
+import sys
+
+def url2domain(url): # предложенный вариант функции для выделения домена из url
+   try:
+       a = urlparse(unquote(url.strip()))
+       if (a.scheme in ['http','https']):
+           b = re.search("(?:www\.)?(.*)",a.netloc).group(1)
+           if b is not None:
+               return str(b).strip()
+           else:
+               return ''
+       else:
+           return ''
+   except:
+       return
+    
+for line in sys.stdin:
+    fields = line.strip().split('\t') #Записи (по задаче) разделены символом табуляции \t
+    if len(fields) == 3: # должно быть 3 поля, иначе обработка грязная и лучше вообще ничего не заливать
+        uid, ts, url = fields
+        domain = url2domain(url) # выделяем домен из url
+        if domain == '': 
+            continue
+        print( ','.join([uid, ts, domain])) # выводим, указываем "," в виде разделителя для последующей загрузки в Hive
+
+--------8.1.2 Делаем copy_origin_data_and_filtering.py исполняемым
+chmod +x copy_origin_data_and_filtering.py
+
+--------8.1.3 Запускаем копирование + преобразование + фильтрация, пишем в папку лабы в каталоге linux
+hadoop fs -cat /labs/lab03data/* | ./copy_origin_data_and_filtering.py > prepared_data_for_hive
+
+--------8.1.4 Копируем файл в свою домашнюю папку в HDFS
+hdfs dfs -mkdir /user/alexander.dorofeyev/lab03
+hadoop fs -put prepared_data_for_hive /user/alexander.dorofeyev/lab03/
+hdfs dfs -ls /user/alexander.dorofeyev/lab03 # проверка
+hdfs dfs -chmod -R 777 /user/alexander.dorofeyev/lab03/ #даем права демону Hive ))
+
+-----8.2 Подливаем данные в таблицу Hive alexander_dorofeyev из prepared_data_for_hive
+(выполняется в Hive)
+LOAD DATA INPATH '/user/alexander.dorofeyev/lab03/prepared_data_for_hive' OVERWRITE INTO TABLE alexander_dorofeyev;
+
+#Проверка, что данные есть в таблице
+select * from alexander_dorofeyev limit 10;
+
+--9. Пишем SQL для Hive, чтобы обработать данные в таблице alexander.dorofeyev
+Код файла lab03_sql.hql
+-- Сначала посчитаем количество посещений в разрезе пользователь - домен
+WITH amount_visits AS (
+    SELECT uid
+          ,url
+          ,count(*) AS visits
+    FROM alexander_dorofeyev
+    GROUP BY uid, url
+    HAVING visits >= 10 -- все что меньше 10 не считаем априори
+),
+--смотрим только интересующие нас домены и если они есть, то
+result_table AS (
+    SELECT uid
+          ,CASE 
+             WHEN url IN ('cars.ru', 'avto-russia.ru', 'bmwclub.ru') THEN 1 
+             ELSE 0 
+           END AS autouser
+          ,CASE 
+             WHEN url IN ('samara-papa.ru', 'vodvore.net', 'mama51.ru') THEN 1 
+             ELSE 0 
+           END AS youngparentuser
+          ,CASE 
+             WHEN url IN ('sp.krasmama.ru', 'forum.krasmama.ru', 'forum.omskmama.ru') THEN 1 
+             ELSE 0 
+           END AS pregnantuser
+          ,CASE 
+             WHEN url IN ('novayagazeta.ru', 'echo.msk.ru', 'inosmi.ru') THEN 1 
+             ELSE 0 
+           END AS politicsuser
+    FROM amount_visits
+)
+INSERT OVERWRITE DIRECTORY 'hdfs://bd-master.newprolab.com:8020/user/alexander.dorofeyev/lab03results'
+ROW FORMAT DELIMITED
+FIELDS TERMINATED BY '\t'
+STORED AS TEXTFILE
+--последовательность и название колонок предопределены
+SELECT uid
+      ,max(autouser) AS user_cat1_flag
+      ,max(youngparentuser) AS user_cat2_flag
+      ,max(pregnantuser) AS user_cat3_flag
+      ,max(politicsuser) AS user_cat4_flag
+FROM result_table
+GROUP BY uid;
+
+-- SQL сохраняем через nano в lab03_sql.sql
+
+--10. Создаем папку для вывода результатов
+hdfs dfs -mkdir /user/alexander.dorofeyev/lab03results
+
+--11. Запускаем выполнение скрипта
+hive -f lab03_sql.hql
+
+--12. Смотрим, есть ли запись
+hdfs dfs -ls /user/alexander.dorofeyev/lab03results
+
+Если все ОК, переходим к последнему шагу
+
+13. Копируем результаты в файл в домашнем каталоге linux
+Имя файла предопределено
+hdfs dfs -cat /user/alexander.dorofeyev/lab03results/* > /data/home/alexander.dorofeyev/lab03_users.txt
+
+14. Смотрим, что получилось
+head lab03_users.txt
+
+15. Нажимаем кнопку "проверить" в ЛК

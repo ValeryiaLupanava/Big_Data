@@ -1,0 +1,103 @@
+Порядок выполнения Лабы:
+1. Создаю таблицу на HIVE:
+create external table semen_shafronov
+(UID string, ts string, URL string)
+ROW FORMAT DELIMITED
+FIELDS TERMINATED BY '\t'
+STORED AS TEXTFILE
+LOCATION '/user/semen.shafronov/hive/lecture/users/';
+
+2. Создаю mapper (url_filter.py), который фильтрует данные и очищает url
+
+
+import sys
+from urllib.parse import urlparse, unquote
+import re
+
+#очистка url и фильтрация (код подчистую взял у Олега А.)
+def url2domain(url):
+    try:
+        a = urlparse(unquote(url.strip()))
+        if (a.scheme in ['http','https']):
+            b = re.search("(?:www\.)?(.*)",a.netloc).group(1)
+            if b is not None:
+                return str(b).strip()
+            else:
+                return ''
+        else:
+            return ''
+    except:
+        return
+
+#список url для фильтрации
+urls_list = [u'cars.ru', u'avto-russia.ru', u'bmwclub.ru', u'zakon.kz', 
+             u'egov.kz', u'makler.md', u'russianfood.com', u'psychologies.ru', 
+             u'gotovim.ru', u'books.imhonet.ru', u'zhurnaly.biz', u'zvukobook.ru']
+
+# эмит при удовлетворении ряду условий
+def map(line, urls_list):
+    objects = line.split('\t')
+# проверяю, чтобы не было пустых ячеек
+    if len(objects) != 3:
+        return
+    if objects[0] == '':
+        return
+    uid, timestamp, url = objects
+# очищаю URL
+    urlstripped = url2domain(url)
+# делаю emit только тех url, которые есть в списке.
+    if urlstripped in urls_list:
+        sys.stdout.write('{}\t{}\t{}\n'.format(uid, timestamp, urlstripped))
+
+def main():
+    for line in sys.stdin:
+        map(line.strip(), urls_list)
+        
+if __name__ == '__main__':
+    main()
+
+3. Прогоняю данные через mapper на хдфс и возвращаю на хдфс. На больших объемах, необходимо было прогнать через map-reduce jobу,
+,которая распараллеливает обработку данных
+hadoop fs -cat /labs/lab03data/* | python3 url_filter.py |  hadoop fs -put - /user/semen.shafronov/semen_shafronov/00000_3.txt
+
+4. Кладу файл с hdfs к себе на локальную машину
+hadoop fs -get /user/semen.shafronov/semen_shafronov/00000_3.txt
+
+5. Из hive запускаю команду, чтобы залить данные в таблицу:
+LOAD DATA INPATH '~/00000_3.txt' OVERWRITE into table semen_shafronov;
+
+где ~/ означает - из своей папки
+
+6. Из hive запускаю sql-запрос.
+
+--считаю, сколько сайтов у каждого пользователя попали в одну из подгрупп
+--способ не самый элегантный. Буду рад узнать более "легкий".
+with a as (
+select 
+uid
+, sum(case when url = 'cars.ru' then 1 else 0 end) cars
+, sum(case when url = 'avto-russia.ru' then 1 else 0 end) avto
+, sum(case when url = 'bmwclub.ru' then 1 else 0 end) bmw
+, sum(case when url = 'zakon.kz' then 1 else 0 end) zakon
+, sum(case when url = 'egov.kz' then 1 else 0 end) egov
+, sum(case when url = 'makler.md' then 1 else 0 end) makler
+, sum(case when url = 'russianfood.com' then 1 else 0 end) russianfood
+, sum(case when url = 'psychologies.ru' then 1 else 0 end) psychologies
+, sum(case when url = 'gotovim.ru' then 1 else 0 end) gotovim
+, sum(case when url = 'books.imhonet.ru' then 1 else 0 end) books
+, sum(case when url = 'zhurnaly.biz' then 1 else 0 end) zhurnaly
+, sum(case when url = 'zvukobook.ru' then 1 else 0 end) zvukobook
+from semen_shafronov
+group by uid
+)
+INSERT OVERWRITE DIRECTORY 'hdfs://bd-master.newprolab.com:8020/user/semen.shafronov/lab03result'
+ROW FORMAT DELIMITED
+FIELDS TERMINATED BY '\t'
+--определяю принадлежность к группе исходя из количества сайтов в подгруппах
+select uid 
+, case when cars >= 10 or avto >= 10 or bmw >= 10 then 1 else 0 end Autouser
+, case when zakon >= 10 or egov >= 10 or makler >= 10 then 1 else 0 end Businessuser
+, case when russianfood >= 10 or psychologies >= 10 or gotovim >= 10 then 1 else 0 end Homeuser
+, case when books >= 10 or zhurnaly >= 10 or zvukobook >= 10 then 1 else 0 end Bookuser
+from a
+order by 1 desc;

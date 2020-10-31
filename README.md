@@ -29,5 +29,5 @@ git pull
 | Ambari       | bd-master.newprolab.com:8080                | панель мониторинга кластера                                                                     |
 | Hadoop       | bd-master.newprolab.com:8088                | мониторинг хадупа :warning: через прокси!                                                       |
 | Jupyter hub  | bd-master.newprolab.com                     | для запуска тетрадок с кодом                                                                    |
-| HBase        | -                                           | `hbase_endpoint = 'bd-node2.newprolab.com'`                                                       |
-| Hive         | bd-node2.newprolab.com:10000                | `beeline jdbc:hive2://bd-node2.newprolab.com:10000 -n name.surname -p <passwd> -f script.sql`|
+| HBase        | -                                           | `hbase_endpoint = 'bd-node2.newprolab.com'`                                                     |
+| Hive         | bd-node1.newprolab.com:10000                | `beeline jdbc:hive2://bd-node1.newprolab.com:10000 -n name.surname -f script.sql`               |

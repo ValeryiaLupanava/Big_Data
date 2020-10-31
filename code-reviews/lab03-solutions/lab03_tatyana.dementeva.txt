@@ -1,0 +1,77 @@
+# Предобработка данных в Python
+
+#!/opt/anaconda/envs/bd9/bin/python
+
+import sys
+from urllib.parse import urlparse, unquote
+import re
+
+def emit(uid, timestamp, url):
+        sys.stdout.write('{}\t{}\t{}\n'.format(uid, timestamp, url))
+
+# get cleaned data
+def map(line):
+        t=line.strip().split("\t")
+        if len(t) == 3:
+            uid, timestamp, url = t
+            if url[:13]=='http%3A%2F%2F' or url[:14]=='https%3A%2F%2F':
+                url = url2domain(url)
+                emit(uid, timestamp, url)
+
+# extract domain
+def url2domain(url):
+   try:
+       a = urlparse(unquote(url.strip()))
+       if (a.scheme in ['http','https']):
+           b = re.search("(?:www\.)?(.*)",a.netloc).group(1)
+           if b is not None:
+               return str(b).strip()
+           else:
+               return ''
+       else:
+           return ''
+   except:
+       return
+
+def main():
+        for line in sys.stdin:
+                map(line)
+
+if __name__ == '__main__':
+        main()
+
+# SQL-скрипт
+
+drop table lab03data;
+
+create external table lab03data
+(
+  uid string,
+  ts float,
+  url string
+  )
+ROW FORMAT DELIMITED 
+FIELDS TERMINATED BY '\t'
+location '/user/tatyana.dementeva/lab03_00/hive_table/';
+
+load data inpath 
+'/user/tatyana.dementeva/lab03_00/part-00000' 
+into table lab03data;
+
+select * from lab03data limit 10;
+
+INSERT OVERWRITE DIRECTORY 'hdfs://bd-master.newprolab.com:8020/user/tatyana.dementeva/lab03result'
+ROW FORMAT DELIMITED
+FIELDS TERMINATED BY '\t'
+STORED AS TEXTFILE
+select uid, 
+	max(user_cat1_flag), 
+	max(user_cat2_flag), 
+	max(user_cat3_flag), 
+	max(user_cat4_flag) 
+from (select uid, 
+		case when url in ('cars.ru', 'avto-russia.ru', 'bmwclub.ru') and cnt>=10 then 1 else 0 end as user_cat1_flag,
+		case when url in ('zakon.kz', 'egov.kz', 'makler.md') and cnt>=10 then 1 else 0 end as user_cat2_flag,
+		case when url in ('russianfood.com', 'psychologies.ru', 'gotovim.ru') and cnt>=10 then 1 else 0 end as user_cat3_flag,
+		case when url in ('books.imhonet.ru', 'zhurnaly.biz', 'zvukobook.ru') and cnt>=10 then 1 else 0 end as user_cat4_flag
+		from (select uid, url, count(*) as cnt from lab03data group by uid, url) t1) t2 group by uid;

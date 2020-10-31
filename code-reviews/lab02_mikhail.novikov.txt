@@ -1,0 +1,85 @@
+---Шаг 1. Создаем базу в hbase (консоль linux)
+hbase shell
+create 'alexander.dorofeyev', {NAME => 'data', VERSIONS => 4096}
+
+--- 1.1 Проверка, что таблица создалась
+list
+
+--- 1.2 Посмотреть свойства таблицы
+describe 'alexander.dorofeyev'
+
+---Шаг 2. Код ad_lab02_mapper.py
+#!/opt/anaconda/envs/bd9/bin/python
+import sys
+
+def main():
+    for line in sys.stdin:
+        record = line.strip().split('\t') # read line
+        # first of all let's check "user id" (UID)
+        uid = record[0] # UID is the first field in dataset
+        if uid == '-' or (int(uid) % 256) != 77: #77 is my uidfilter from personal room on lk.newprolab.com
+	## глобальные параметры обычно выносят за границы функции
+            continue
+        # we need to transform timestamp records
+        try:
+            tmsmp = int(float(record[1])*1000)
+        except:
+            print('something wrong with timestamp')
+        # check existence and correctness of url
+        try:
+            url = record[2]
+            if url.startswith('http') == False:
+                continue
+        except IndexError:
+            continue
+        # output
+        print(uid + '\t' + str(tmsmp) +'\t' + url)
+	## Слишком много  ненужных try .. except, можно обойтись одним или использовать if .. else
+	
+if __name__ == "__main__":
+    main()
+
+---Шаг 3. Код ad_lab02_upload_data.py
+#!/opt/anaconda/envs/bd9/bin/python
+import happybase
+import sys
+
+connection = happybase.Connection('bd-node2.newprolab.com') # following by task note :)
+distination_table=connection.table('alexander.dorofeyev')
+
+def main():
+    for line in sys.stdin:
+        # difine input
+        uid, tmsmp, url = line.strip().split('\t') ## Ужасное название переменных tmsmp ???  timestamp, ts будут много лучше
+        # output
+        distination_table.put(uid, {'data:url': url}, timestamp=int(tmsmp))
+
+if __name__ == "__main__":
+    main()
+
+---Шаг 4. Делаем файлы исполняемыми
+chmod +x ad_lab02_mapper.py
+chmod +x ad_lab02_upload_data.py
+
+---Шаг 5. Пишем bash-file для запуска всего datapipeline
+#!/usr/bin/env sh
+
+DIR_IN=/labs/lab02data/facetz_2015_02_04/
+DIR_OUT=/user/$USER/lab02/result
+
+hadoop fs -rm -r -f $DIR_OUT
+
+hadoop jar ~/hadoop-streaming.jar \
+	-D mapred.reduce.tasks=1 \  ## Смысл использовать мапредьюс задачу, если ты ограничиваешь его в 1 поток ??? в 2-5-10-30 быстрее же будет.
+	-input ${DIR_IN} \
+	-output ${DIR_OUT} \
+        -mapper "ad_lab02_mapper.py" \
+	-file "ad_lab02_mapper.py" \
+        -reducer "ad_lab02_upload_data.py" \
+        -file "ad_lab02_upload_data.py"
+
+---Шаг 6. Даем права на исполнение sh-файла и запускаем
+chmod +x start_job_for_lab02.sh
+./start_job_for_lab02.sh
+
+## Местами хороший частный случай кода, подхрамывает язык (define, destination), но на код это не влияет....
