@@ -1,0 +1,55 @@
+--Вячеслав, привет!
+--Круто, все SQL-ем!
+
+--Смотрю, ты уже предобработанную инфо дал HIVE-у. В смысле не нужно обрабатывать URL-ы, фильтровать по пустым, ненужным.
+--Было бы интересно посмотреть, как предобработал и вообще весь подход к решению лабы сначала. 
+--Тогда было бы больше возможностей дать обратную связь.
+
+
+--Вложенные селекты - это круто!
+--Я был сторонником with a as (), b as (), но во вложенных селектах есть свои прелести. 
+--Напр., можно результат таких селектов в переменную записать
+--но есть и минусы, их сложнее читать (нужно двигаться не сверху вниз, как мы привыкли, а из середины нарузу).
+--если вложенные селекты, был бы рад комментариям или каким-то графическим разделениям типа "------------------", чтобы легче понять. 
+
+select
+uid,
+case when g11 > 9 or g12 > 9 or g13 > 9 then 1 else 0 end g1, 
+case when g21 > 9 or g22 > 9 or g23 > 9 then 1 else 0 end g2,
+case when g31 > 9 or g32 > 9 or g33 > 9 then 1 else 0 end g3,
+case when g41 > 9 or g42 > 9 or g33 > 9 then 1 else 0 end g4
+from 
+( 
+select
+uid,
+sum(g11) g11, sum(g12) g12, sum(g13) g13,
+sum(g21) g21, sum(g22) g22, sum(g23) g23,
+sum(g31) g31, sum(g32) g32, sum(g33) g33,
+sum(g41) g41, sum(g42) g42, sum(g43) g43
+from 
+(
+может, имеет смысл назвать колонки g11-43 как-то посодержательнее.
+--или дать к ним комментарий.
+--чтобы, как говорит мой руководитель, ты сам мог бы через год прочитать и понять, что сделал.
+
+--можно было решить через аггрегацию и последующий pivot table. Будет более экономично на большем количестве колонок.
+select
+uid,
+case urlnew when 'cars.ru'           then 1 else 0 end g11,
+case urlnew when 'avto-russia.ru'    then 1 else 0 end g12,
+case urlnew when 'bmwclub.ru'        then 1 else 0 end g13,
+case urlnew when 'vk.com'            then 1 else 0 end g21,
+case urlnew when 'mail.qip.ru'       then 1 else 0 end g22,
+case urlnew when 'lk.ssl.mts.ru'     then 1 else 0 end g23,
+case urlnew when 'games.mail.ru'     then 1 else 0 end g31,
+case urlnew when 'igrystrelyalki.ru' then 1 else 0 end g32,
+case urlnew when 'consol-games.net'  then 1 else 0 end g33,
+case urlnew when '5ballov.qip.ru'    then 1 else 0 end g41,
+case urlnew when 'mgimo.ru'          then 1 else 0 end g42,
+case urlnew when 'referat.arxiv.uz'  then 1 else 0 end g43 
+from shu_lab3
+) a group by a.uid
+) b```  --интересно, что значат ''' в конце запроса. Никогда не сталкивался с такими знаками.
+
+
+--касательно всего SQL-запроса логика понятна и отлично реализована!
