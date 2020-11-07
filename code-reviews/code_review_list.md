@@ -12,7 +12,6 @@
 |ekaterina.kucheryavenko	|valeria.lupanova       |
 |lili.sabirzyanova		    |viktorya.mukukenova    |
 
-
 ## Lab 03
 
 | Peer 1                    | Peer 2                |
@@ -25,3 +24,16 @@
 |ekaterina.kucheryavenko    |tatyana.dementeva      |
 |semen.shafronov	        |vyacheslav.shustov     |
 |valeria.lupanova           |viktorya.mukukenova    |
+
+## Lab 04
+
+| Peer 1                    | Peer 2                |
+| ------------------------- | --------------------- |
+|alexander.alexandrov       | alexander.dorofeyev   |
+|alexander.prutko           | alexander.vertyagin   |    
+|dmitry.vorobyev            | egor.makrushin        |
+|ekaterina.kucheryavenko    | galina.malyutina      |
+|lili.sabirzyanova          | marina.kapush         |
+|mikhail.novikov            | pavel.borisov         |
+|semen.shafronov            | valeria.lupanova      |
+|konstantin.ivanchenko	    | alexander.prutko      |
