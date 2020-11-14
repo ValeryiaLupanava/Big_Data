@@ -37,3 +37,14 @@
 |mikhail.novikov            | pavel.borisov         |
 |semen.shafronov            | valeria.lupanova      |
 |konstantin.ivanchenko	    | alexander.prutko      |
+
+## Lab 05
+
+| Peer 1                    | Peer 2                |
+| ------------------------- | --------------------- |
+|alexander.alexandrov       | alexander.prutko      |
+|alexander.vertyagin        | lili.sabirzyanova     |
+|ekaterina.kucheryavenko    | alexander.dorofeyev   |
+|galina.malyutina           | semen.shafronov       |
+|mikhail.novikov            | viktorya.mukukenova   |
+|valeria.lupanova           | dmitry.vorobyev       |
