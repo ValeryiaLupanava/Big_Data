@@ -48,3 +48,14 @@
 |galina.malyutina           | semen.shafronov       |
 |mikhail.novikov            | viktorya.mukukenova   |
 |valeria.lupanova           | dmitry.vorobyev       |
+
+## Lab 06
+
+| Peer 1                    | Peer 2                |
+| ------------------------- | --------------------- |
+|valeria.lupanova           | konstantin.ivanchenko |
+|lili.sabirzyanova          | galina.malyutina      |
+|ekaterina.kucheryavenko    | mikhail.novikov       |
+|semen.shafronov            | alexander.prutko      |
+|alexander.dorofeyev        | alexander.vertyagin   |
+|alexander.alexandrov       | viktorya.mukukenova   |
