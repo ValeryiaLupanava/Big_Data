@@ -1,0 +1,37 @@
+00:22:45	Natalya Pritykovskaya:	"/lectures/lecture02/data/logsM.txt"
+00:22:59	Natalya Pritykovskaya:	from pyspark.sql.types import *
+
+log_schema = StructType(fields=[
+    StructField("ip", StringType()),
+    StructField("timestamp", LongType()),
+    StructField("url", StringType()),
+    StructField("size", IntegerType()),
+    StructField("code", IntegerType()),
+    StructField("ua", StringType())
+])
+
+log = spark.read.csv("/lectures/lecture02/data/logsM.txt", sep="\t", schema=log_schema).cache()
+00:30:01	Alexander:	Он если время заканчивается засчитывает ответы, которые ты выбрал
+00:30:12	Ruslan Tskhovrebadze:	Да
+00:30:21	Ruslan Tskhovrebadze:	Только что так закончил )
+00:36:21	Alexander:	Можно и без udf)
+00:37:38	Денис Маркин:	split(url, '/')[2]
+00:38:04	Alexander:	f.expr("lower(parse_url(_c2, 'HOST'))")
+00:38:43	Михаил Новиков:	а теперь не забываем закрыть джобы...
+00:39:27	Dmitry Novikov:	В режиме паники я не вспомнил про udf
+Считал влоб
+df.filter(F.col('url').contains('news.mail.ru')).count()
+01:10:42	Михаил Новиков:	ситуация с очередью в кафке очень напоминает затерявшиеся смски от банка, в новый год :)
+01:52:25	sergey:	А валидацию json-а приходящего в spark из kafka нельзя организовать? Т.е. чтобы вместо null-ей была ошибка чтения.
+02:38:58	Alexander:	Сам спарк в кубернетс тоже?
+02:39:18	sergey:	Хранить мелкие файлы в hdfs не очень хорошая практика. Нельзя ли файлы, которые генерирует spark, автоматически сливать в более крупные? 
+02:40:16	Dmitry Novikov:	В дополнение: чекпоинты генерят ворох маленьких json-файлов. Можно ли как-то ограничить их количество?
+02:43:57	Alexander:	Аа, у вас облако, тогда понятно)
+02:44:40	Alexander:	Мы только за
+02:44:45	Михаил Новиков:	ей!!!  Всеми лапками за
+02:44:51	Natalya Pritykovskaya:	хехе
+02:45:10	Максим Кобзев:	Нормально! Проект уже припекает )))
+02:45:44	Dmitry Novikov:	Спасибо большое! :)
+02:45:54	Максим Кобзев:	Спасибо!
+02:45:57	sergey:	Спасибо
+02:45:57	Ilia Komarov:	Спасибо

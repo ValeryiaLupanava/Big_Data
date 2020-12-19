@@ -1,0 +1,59 @@
+#1. Create Hive table for input data:
+CREATE EXTERNAL TABLE IF NOT EXISTS lab03_input
+( uid bigint, 
+  time_stamp float, 
+  url string
+  )
+ROW FORMAT DELIMITED
+FIELDS TERMINATED BY '\t'
+LINES TERMINATED BY '\n'
+STORED AS TEXTFILE
+;
+
+#2. Copy input data for loading in Hive:
+hadoop fs -cp /labs/lab03data/* ./lab03data
+
+#3. Loading input data in Hive:
+LOAD DATA INPATH '/user/alexander.bobr/lab03data/*'
+OVERWRITE INTO TABLE lab03_input
+;
+
+#4. Calculating result:
+INSERT OVERWRITE DIRECTORY 'hdfs://bd-master.newprolab.com:8020/user/alexander.bobr/lab03result'
+ROW FORMAT DELIMITED
+FIELDS TERMINATED BY '\t'
+STORED AS TEXTFILE
+select f.uid,
+	   case when f.autouser_flag1 >= 10 or f.autouser_flag2 >= 10 or f.autouser_flag3 >= 10 then 1 else 0 end as id_1,
+	   case when f.yp_user_flag1 >= 10 or f.yp_user_flag2 >= 10 or f.yp_user_flag3 >= 10 then 1 else 0 end as id_2,
+	   case when f.preg_user_flag1 >= 10 or f.preg_user_flag2 >= 10 or f.preg_user_flag3 >= 10 then 1 else 0 end as id_3,
+	   case when f.polit_user_flag1 >= 10 or f.polit_user_flag2 >= 10 or f.polit_user_flag3 >= 10 then 1 else 0 end as id_4
+  from (
+select x.uid,
+	   sum(case when x.short_url = 'cars.ru' then 1 else 0 end) as autouser_flag1,
+	   sum(case when x.short_url = 'avto-russia.ru' then 1 else 0 end) as autouser_flag2,
+	   sum(case when x.short_url = 'bmwclub.ru' then 1 else 0 end) as autouser_flag3,
+	   sum(case when x.short_url = 'samara-papa.ru' then 1 else 0 end) as yp_user_flag1,
+	   sum(case when x.short_url = 'vodvore.net' then 1 else 0 end) as yp_user_flag2,
+	   sum(case when x.short_url = 'mama51.ru' then 1 else 0 end) as yp_user_flag3,
+	   sum(case when x.short_url = 'sp.krasmama.ru' then 1 else 0 end) as preg_user_flag1,
+       sum(case when x.short_url = 'forum.krasmama.ru' then 1 else 0 end) as preg_user_flag2,
+       sum(case when x.short_url = 'forum.omskmama.ru' then 1 else 0 end) as preg_user_flag3,
+	   sum(case when x.short_url = 'novayagazeta.ru' then 1 else 0 end) as polit_user_flag1,
+	   sum(case when x.short_url = 'echo.msk.ru' then 1 else 0 end) as polit_user_flag2,
+       sum(case when x.short_url = 'inosmi.ru' then 1 else 0 end) as polit_user_flag3
+  from
+(
+select uid,
+	   replace(parse_url(replace(replace(t.url, '%3A', ':'), '%2F', '/'), 'HOST'), 'www.', '') as short_url,
+	   url
+  from lab03_input t
+where uid is not null
+) x
+group by x.uid
+) f
+order by f.uid
+;
+
+#5 Loading result from hdfs to master:
+hadoop fs -cat /user/alexander.bobr/lab03result/* > ~/lab03_users.txt
